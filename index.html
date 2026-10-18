@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catalog</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0a0a0c',
+                        cardbg: '#141418',
+                        surface: '#1c1c22',
+                        accent: '#e5e5e7',
+                    },
+                    animation: {
+                        'subtle-float': 'subtleFloat 6s ease-in-out infinite',
+                        'pulse-glow': 'pulseGlow 4s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        subtleFloat: {
+                            '0%, 100%': { transform: 'scale(1) translateY(0)' },
+                            '50%': { transform: 'scale(1.01) translateY(-4px)' },
+                        },
+                        pulseGlow: {
+                            '0%, 100%': { opacity: '0.15' },
+                            '50%': { opacity: '0.35' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome for clean icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .aspect-square-box { aspect-ratio: 1 / 1; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #0a0a0c; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-darkbg text-zinc-100 min-h-screen flex flex-col selection:bg-zinc-200 selection:text-black">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <!-- Header Navigation -->
+    <header class="sticky top-0 z-40 bg-darkbg/95 backdrop-blur-xl border-b border-zinc-800/60 px-4 md:px-10 py-4 flex items-center justify-between">
+        
+        <!-- Navigation Tabs (Dynamic, no names/labels) -->
+        <nav class="flex items-center space-x-1 sm:space-x-2 overflow-x-auto no-scrollbar py-1" id="product-tabs">
+            <!-- Populated via JS -->
+        </nav>
+
+        <div class="flex items-center space-x-3 flex-shrink-0">
+            <!-- View Mode Toggle -->
+            <div id="view-mode-wrapper" class="bg-surface p-1 rounded-xl border border-zinc-800 flex items-center space-x-1">
+                <button onclick="setViewMode('grid')" id="mode-grid-btn" class="px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 bg-zinc-200 text-black font-semibold shadow">
+                    <i class="fa-solid fa-grid-2"></i>
+                    <span class="hidden sm:inline">Grid</span>
+                </button>
+                <button onclick="setViewMode('flipbook')" id="mode-flipbook-btn" class="px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 text-zinc-400 hover:text-white">
+                    <i class="fa-solid fa-book-open-reader"></i>
+                    <span class="hidden sm:inline">Flipbook</span>
+                </button>
+            </div>
+
+            <button onclick="shareCurrentPage()" class="px-3.5 py-2 bg-surface hover:bg-zinc-800 text-zinc-300 text-xs font-medium rounded-xl transition flex items-center space-x-2 border border-zinc-800">
+                <i class="fa-solid fa-share-nodes"></i>
+                <span class="hidden sm:inline">Share Page</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Stage -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 flex flex-col">
+        
+        <!-- ================= VIEW MODE 1: EDITORIAL GRID ================= -->
+        <div id="view-grid" class="space-y-6">
+            <div id="grid-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <!-- Grid items populated dynamically -->
+            </div>
+        </div>
+
+        <!-- ================= VIEW MODE 2: CINEMATIC FLIPBOOK INSPECTOR ================= -->
+        <div id="view-flipbook" class="hidden grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            
+            <!-- Left Column: Main Stage Player -->
+            <div class="lg:col-span-7 flex flex-col items-center">
+                <div class="w-full flex items-center justify-between mb-3 px-1">
+                    <span id="flipbook-counter" class="text-xs font-mono text-zinc-400 bg-surface px-3 py-1 rounded-lg border border-zinc-800">01 / 01</span>
+                </div>
+
+                <!-- Stage Box with 1:1 Aspect Ratio & Breathing Animation -->
+                <div class="relative w-full max-w-xl aspect-square-box bg-cardbg rounded-3xl border border-zinc-800/80 shadow-2xl overflow-hidden group flex items-center justify-center p-6">
+                    <!-- Ambient Glow -->
+                    <div class="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent animate-pulse-glow pointer-events-none"></div>
+
+                    <!-- Main Image with Subtle Breathing Animation -->
+                    <div class="relative w-full h-full flex items-center justify-center animate-subtle-float">
+                        <img id="flipbook-main-image" src="" alt="Product View" class="max-w-full max-h-full object-contain rounded-2xl drop-shadow-2xl transition-all duration-300 select-none" onerror="this.src='https://placehold.co/600x600/141418/e5e5e7?text=Loading'">
+                    </div>
+
+                    <!-- Stage Floating Actions -->
+                    <div class="absolute top-4 right-4 flex space-x-2 opacity-90 lg:opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <button onclick="toggleSelectCurrentFlipbookImage()" id="flipbook-select-btn" title="Select Item" class="w-10 h-10 rounded-xl bg-surface/90 backdrop-blur-md text-zinc-300 hover:text-white flex items-center justify-center border border-zinc-700 shadow-lg transition">
+                            <i id="flipbook-select-icon" class="fa-regular fa-square text-lg"></i>
+                        </button>
+                        <button onclick="downloadCurrentFlipbookImage()" title="Download Asset" class="w-10 h-10 rounded-xl bg-surface/90 backdrop-blur-md text-zinc-300 hover:text-white flex items-center justify-center border border-zinc-700 shadow-lg hover:bg-zinc-200 hover:text-black transition">
+                            <i class="fa-solid fa-download"></i>
+                        </button>
+                        <button onclick="shareCurrentFlipbookImage()" title="Share Asset" class="w-10 h-10 rounded-xl bg-surface/90 backdrop-blur-md text-zinc-300 hover:text-white flex items-center justify-center border border-zinc-700 shadow-lg hover:bg-zinc-200 hover:text-black transition">
+                            <i class="fa-solid fa-share"></i>
+                        </button>
+                    </div>
+
+                    <!-- Navigation Arrows -->
+                    <button onclick="prevFlipbookImage()" class="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-2xl bg-surface/80 backdrop-blur-md text-zinc-200 hover:text-black hover:bg-zinc-200 border border-zinc-700/60 shadow-xl flex items-center justify-center transition opacity-80 group-hover:opacity-100">
+                        <i class="fa-solid fa-chevron-left text-lg"></i>
+                    </button>
+                    <button onclick="nextFlipbookImage()" class="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-2xl bg-surface/80 backdrop-blur-md text-zinc-200 hover:text-black hover:bg-zinc-200 border border-zinc-700/60 shadow-xl flex items-center justify-center transition opacity-80 group-hover:opacity-100">
+                        <i class="fa-solid fa-chevron-right text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Flipbook Controls & Batch Action trigger -->
+                <div class="w-full max-w-xl flex items-center justify-between mt-4 px-2">
+                    <div class="flex items-center space-x-2">
+                        <button id="autoplay-btn" onclick="toggleAutoplay()" class="px-4 py-2 bg-surface hover:bg-zinc-800 text-zinc-300 rounded-xl border border-zinc-800 text-xs font-medium flex items-center space-x-2 transition">
+                            <i id="autoplay-icon" class="fa-solid fa-play text-zinc-200"></i>
+                            <span id="autoplay-text">Auto Play Loop</span>
+                        </button>
+                        <button onclick="resetFlipbook()" class="p-2.5 bg-surface hover:bg-zinc-800 text-zinc-300 rounded-xl border border-zinc-800 text-xs transition" title="Rewind">
+                            <i class="fa-solid fa-rotate-left"></i>
+                        </button>
+                    </div>
+
+                    <button onclick="openBatchModal()" class="px-4 py-2 bg-zinc-200 hover:bg-white text-black text-xs font-semibold rounded-xl transition shadow flex items-center space-x-2">
+                        <i class="fa-solid fa-check-double"></i>
+                        <span>Selected (<span id="selected-badge-count">0</span>)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Column: Filmstrip Drawer Index -->
+            <div class="lg:col-span-5 flex flex-col h-[520px] bg-cardbg rounded-3xl border border-zinc-800/80 shadow-2xl p-6">
+                <div class="flex items-center justify-between pb-4 border-b border-zinc-800">
+                    <span class="font-medium text-white text-xs tracking-wider uppercase">Frame Index</span>
+                    <span id="drawer-counter" class="text-xs font-mono text-zinc-400">0 selected</span>
+                </div>
+                <div id="filmstrip-container" class="flex-1 overflow-y-auto pr-1 py-4 grid grid-cols-4 gap-3">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-auto py-6 border-t border-zinc-800/60 text-center text-xs text-zinc-500 bg-darkbg">
+        <p class="tracking-widest uppercase">Pure Visual Catalog • 1:1 Aspect Ratio Full Fidelity</p>
+    </footer>
+
+    <!-- Batch Actions Modal (Only operates on user-selected items) -->
+    <div id="batch-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4">
+        <div class="bg-cardbg border border-zinc-800 rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl">
+            <div class="p-6 border-b border-zinc-800 flex items-center justify-between">
+                <div>
+                    <h3 class="text-sm font-semibold text-white uppercase tracking-wider">Selected Images (<span id="modal-selected-count">0</span>)</h3>
+                </div>
+                <button onclick="closeBatchModal()" class="w-9 h-9 rounded-xl bg-surface text-zinc-400 hover:text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div id="batch-modal-grid" class="p-6 overflow-y-auto grid grid-cols-3 sm:grid-cols-4 gap-3 max-h-[50vh]">
+                <!-- Selected items preview grid -->
+            </div>
+            <div class="p-4 bg-surface/80 border-t border-zinc-800 flex items-center justify-between">
+                <button onclick="clearSelection()" class="text-xs text-red-400 hover:text-red-300 font-medium">Clear Selection</button>
+                <div class="flex space-x-3">
+                    <button onclick="downloadSelectedBatch()" class="px-4 py-2 bg-surface hover:bg-zinc-800 text-zinc-200 text-xs font-medium rounded-xl transition border border-zinc-700">Download Selected</button>
+                    <button onclick="shareSelectedBatch()" class="px-4 py-2 bg-zinc-200 hover:bg-white text-black text-xs font-semibold rounded-xl transition shadow">Share Selected</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        // Exact grouping by prefixes (1-, 2-, 3-, 4-, 5-, 6-, 7-) and individual images (8 to 17)
+        const products = [
+            {
+                id: "contact",
+                name: "Contact",
+                isContact: true
+            },
+            {
+                id: "group-1",
+                name: "01",
+                images: [
+                    { id: "1-1", thumb: "https://i.ibb.co/8gGqQzYM/1-1.png" },
+                    { id: "1-2", thumb: "https://i.ibb.co/VcyLR3Qy/1-2.png" },
+                    { id: "1-3", thumb: "https://i.ibb.co/gbQFY3dM/1-3.png" },
+                    { id: "1-4", thumb: "https://i.ibb.co/k2SpkyG6/1-4.png" },
+                    { id: "1-5", thumb: "https://i.ibb.co/NgL5FhBT/1-5.png" },
+                    { id: "1-6", thumb: "https://i.ibb.co/9kRKKZNd/1-6.png" },
+                    { id: "1-7", thumb: "https://i.ibb.co/0VtR3BTM/1-7.png" },
+                    { id: "1-8", thumb: "https://i.ibb.co/TBNLsqg1/1-8.png" },
+                    { id: "1-9", thumb: "https://i.ibb.co/KxB2XQdJ/1-9.png" },
+                    { id: "1-10", thumb: "https://i.ibb.co/zW1pn3b4/1-10.png" },
+                    { id: "1-11", thumb: "https://i.ibb.co/rG2fQH0x/1-11.png" },
+                    { id: "1-12", thumb: "https://i.ibb.co/VYmrZgK9/1-12.png" },
+                    { id: "1-13", thumb: "https://i.ibb.co/sdKDRcMT/1-13.png" },
+                    { id: "1-14", thumb: "https://i.ibb.co/8gmq4QJ3/1-14.png" },
+                    { id: "1-15", thumb: "https://i.ibb.co/675LX4DY/1-15.png" },
+                    { id: "1-16", thumb: "https://i.ibb.co/7dRXLnsx/1-16.png" },
+                    { id: "1-17", thumb: "https://i.ibb.co/LhgzPWjn/1-17.png" },
+                    { id: "1-18", thumb: "https://i.ibb.co/yFd78b8V/1-18.png" },
+                    { id: "1-19", thumb: "https://i.ibb.co/tPC6Rwqd/1-19.png" },
+                    { id: "1-20", thumb: "https://i.ibb.co/ZzSmZKdx/1-20.png" },
+                    { id: "1-21", thumb: "https://i.ibb.co/vxY1pcYz/1-21.png" },
+                    { id: "1-22", thumb: "https://i.ibb.co/Mx3FNRBz/1-22.png" },
+                    { id: "1-23", thumb: "https://i.ibb.co/XZkQ3Nfs/1-23.png" },
+                    { id: "1-24", thumb: "https://i.ibb.co/XkyVv831/1-24.png" },
+                    { id: "1-25", thumb: "https://i.ibb.co/fY510BtZ/1-25.png" },
+                    { id: "1-26", thumb: "https://i.ibb.co/Fkq4y8xc/1-26.png" },
+                    { id: "1-27", thumb: "https://i.ibb.co/fVsD0V22/1-27.png" },
+                    { id: "1-28", thumb: "https://i.ibb.co/fG24Yynp/1-28.png" },
+                    { id: "1-29", thumb: "https://i.ibb.co/bRb59kMm/1-29.png" },
+                    { id: "1-30", thumb: "https://i.ibb.co/j9B4Gryb/1-30.png" },
+                    { id: "1-31", thumb: "https://i.ibb.co/KxvHt4vr/1-31.png" },
+                    { id: "1-32", thumb: "https://i.ibb.co/956jJ1q/1-32.png" },
+                    { id: "1-33", thumb: "https://i.ibb.co/JjqTzV1B/1-33.png" },
+                    { id: "1-34", thumb: "https://i.ibb.co/s9S6fBzh/1-34.png" },
+                    { id: "1-35", thumb: "https://i.ibb.co/CsJGvKwz/1-35.png" },
+                    { id: "1-36", thumb: "https://i.ibb.co/MD6jFqH4/1-36.png" },
+                    { id: "1-37", thumb: "https://i.ibb.co/W4c1w2B8/1-37.png" },
+                    { id: "1-38", thumb: "https://i.ibb.co/p8KynpB/1-38.png" },
+                    { id: "1-39", thumb: "https://i.ibb.co/LdrhxC8c/1-39.png" },
+                    { id: "1-40", thumb: "https://i.ibb.co/7Jd9BW0c/1-40.png" },
+                    { id: "1-41", thumb: "https://i.ibb.co/yn6Kf7hG/1-41.png" },
+                    { id: "1-42", thumb: "https://i.ibb.co/jvBRD8Jx/1-42.png" },
+                    { id: "1-43", thumb: "https://i.ibb.co/pBr8DYzP/1-43.png" },
+                    { id: "1-44", thumb: "https://i.ibb.co/ZpYPj06V/1-44.png" },
+                    { id: "1-45", thumb: "https://i.ibb.co/SXf62rKx/1-45.png" },
+                    { id: "1-46", thumb: "https://i.ibb.co/M5VmPKjN/1-46.png" },
+                    { id: "1-47", thumb: "https://i.ibb.co/k6g1gW4Q/1-47.png" },
+                    { id: "1-48", thumb: "https://i.ibb.co/1GB1gMZS/1-48.png" },
+                    { id: "1-49", thumb: "https://i.ibb.co/2b3tHjW/1-49.png" },
+                    { id: "1-50", thumb: "https://i.ibb.co/8Ln1H7sg/1-50.png" },
+                    { id: "1-51", thumb: "https://i.ibb.co/B2bt29CL/1-51.png" },
+                    { id: "1-52", thumb: "https://i.ibb.co/mw2ZzPQ/1-52.png" },
+                    { id: "1-53", thumb: "https://i.ibb.co/35cYLYZh/1-53.png" },
+                    { id: "1-54", thumb: "https://i.ibb.co/LDK4yDMw/1-54.png" },
+                    { id: "1-55", thumb: "https://i.ibb.co/yF3D0Zhx/1-55.png" },
+                    { id: "1-56", thumb: "https://i.ibb.co/Pv7xfm3m/1-56.png" },
+                    { id: "1-57", thumb: "https://i.ibb.co/tpd97GJ6/1-57.png" },
+                    { id: "1-58", thumb: "https://i.ibb.co/GQ58sNVw/1-58.png" },
+                    { id: "1-59", thumb: "https://i.ibb.co/fVVSjZp1/1-59.png" },
+                    { id: "1-60", thumb: "https://i.ibb.co/9HGNWzfh/1-60.png" },
+                    { id: "1-61", thumb: "https://i.ibb.co/pvNCTtp9/1-61.png" },
+                    { id: "1-62", thumb: "https://i.ibb.co/5gncLpF2/1-62.png" },
+                    { id: "1-63", thumb: "https://i.ibb.co/xKhYbg0K/1-63.png" },
+                    { id: "1-64", thumb: "https://i.ibb.co/mV1S5qS6/1-64.png" },
+                    { id: "1-65", thumb: "https://i.ibb.co/LXNDwFd1/1-65.png" },
+                    { id: "1-66", thumb: "https://i.ibb.co/5XDhyCtG/1-66.png" },
+                    { id: "1-67", thumb: "https://i.ibb.co/prZPTbqz/1-67.png" },
+                    { id: "1-68", thumb: "https://i.ibb.co/LdKYhCRN/1-68.png" },
+                    { id: "1-69", thumb: "https://i.ibb.co/7JzcTsRS/1-69.png" },
+                    { id: "1-70", thumb: "https://i.ibb.co/xtW46B1D/1-70.png" },
+                    { id: "1-71", thumb: "https://i.ibb.co/SDWBPYdk/1-71.png" },
+                    { id: "1-72", thumb: "https://i.ibb.co/23zgjs86/1-72.png" },
+                    { id: "1-73", thumb: "https://i.ibb.co/tMvG8KkH/1-73.png" },
+                    { id: "1-74", thumb: "https://i.ibb.co/4ZbJNSgd/1-74.png" },
+                    { id: "1-75", thumb: "https://i.ibb.co/r27WCqqt/1-75.png" },
+                    { id: "1-76", thumb: "https://i.ibb.co/5hTFc7Bs/1-76.png" },
+                    { id: "1-77", thumb: "https://i.ibb.co/0p8yr3wL/1-77.png" },
+                    { id: "1-78", thumb: "https://i.ibb.co/HL8gc17z/1-78.png" },
+                    { id: "1-79", thumb: "https://i.ibb.co/Nn27yydk/1-79.png" },
+                    { id: "1-80", thumb: "https://i.ibb.co/R4cjQKRx/1-80.png" },
+                    { id: "1-81", thumb: "https://i.ibb.co/1fZ3D9t6/1-81.png" },
+                    { id: "1-82", thumb: "https://i.ibb.co/5gf76CQX/1-82.png" },
+                    { id: "1-83", thumb: "https://i.ibb.co/BKrFWwmx/1-83.png" },
+                    { id: "1-84", thumb: "https://i.ibb.co/4ZKn2rQK/1-84.png" },
+                    { id: "1-85", thumb: "https://i.ibb.co/x81JGXpd/1.png" }
+                ]
+            },
+            {
+                id: "group-2",
+                name: "02",
+                images: [
+                    { id: "2-1", thumb: "https://i.ibb.co/PGCz5njs/2-1.png" },
+                    { id: "2-2", thumb: "https://i.ibb.co/FCtSP0h/2-2.png" },
+                    { id: "2-3", thumb: "https://i.ibb.co/67PmrFfD/2-3.png" },
+                    { id: "2-4", thumb: "https://i.ibb.co/dswXw69f/2-4.png" },
+                    { id: "2-5", thumb: "https://i.ibb.co/p5Sfhjt/2-5.png" },
+                    { id: "2-6", thumb: "https://i.ibb.co/QjYVhmCY/2-6.png" },
+                    { id: "2-7", thumb: "https://i.ibb.co/6G1zMJ5/2-7.png" },
+                    { id: "2-8", thumb: "https://i.ibb.co/5gR61xnQ/2-8.png" },
+                    { id: "2-9", thumb: "https://i.ibb.co/sp3Kr8Hh/2-9.png" },
+                    { id: "2-10", thumb: "https://i.ibb.co/mC3g0b9X/2-10.png" },
+                    { id: "2-11", thumb: "https://i.ibb.co/0R4L8v35/2-11.png" },
+                    { id: "2-12", thumb: "https://i.ibb.co/MymgVXvC/2-12.png" },
+                    { id: "2-13", thumb: "https://i.ibb.co/MyJ8Sm0N/2-13.png" },
+                    { id: "2-14", thumb: "https://i.ibb.co/0y5d2DMx/2-14.png" },
+                    { id: "2-15", thumb: "https://i.ibb.co/S4MMt95P/2-15.png" },
+                    { id: "2-16", thumb: "https://i.ibb.co/R4McRhgv/2-16.png" },
+                    { id: "2-17", thumb: "https://i.ibb.co/WNbpT3qw/2-17.png" },
+                    { id: "2-18", thumb: "https://i.ibb.co/LXp4WWp7/2-18.png" },
+                    { id: "2-19", thumb: "https://i.ibb.co/pj2yVdsL/2-19.png" },
+                    { id: "2-20", thumb: "https://i.ibb.co/PzcXdtvb/2-20.png" },
+                    { id: "2-21", thumb: "https://i.ibb.co/Rkqc8zb5/2-21.png" },
+                    { id: "2-22", thumb: "https://i.ibb.co/4ZjM6STw/2-22.png" },
+                    { id: "2-23", thumb: "https://i.ibb.co/MDPRpCCG/2-23.png" },
+                    { id: "2-24", thumb: "https://i.ibb.co/9HWMnShV/2-24.png" },
+                    { id: "2-25", thumb: "https://i.ibb.co/bMyS4DCw/2-25.png" },
+                    { id: "2-26", thumb: "https://i.ibb.co/Dgg8HpKv/2-26.png" },
+                    { id: "2-27", thumb: "https://i.ibb.co/C5r4DVQN/2-27.png" },
+                    { id: "2-28", thumb: "https://i.ibb.co/YBW4nbPg/2-28.png" },
+                    { id: "2-29", thumb: "https://i.ibb.co/j9cX2Dww/2-29.png" },
+                    { id: "2-30", thumb: "https://i.ibb.co/Jj9hNJc1/2-30.png" },
+                    { id: "2-31", thumb: "https://i.ibb.co/Jw42cjyp/2-31.png" },
+                    { id: "2-32", thumb: "https://i.ibb.co/xqnwgHYx/2-32.png" },
+                    { id: "2-33", thumb: "https://i.ibb.co/0VhDh3jB/2-33.png" },
+                    { id: "2-34", thumb: "https://i.ibb.co/XZqJQ8Kc/2-34.png" },
+                    { id: "2-35", thumb: "https://i.ibb.co/Hp9N5yqk/2-35.png" },
+                    { id: "2-36", thumb: "https://i.ibb.co/N6Sy7XNs/2-36.png" },
+                    { id: "2-37", thumb: "https://i.ibb.co/bM1GZNv1/2-37.png" },
+                    { id: "2-38", thumb: "https://i.ibb.co/WNHrXHGT/2-38.png" },
+                    { id: "2-39", thumb: "https://i.ibb.co/Dxm8mGF/2-39.png" },
+                    { id: "2-40", thumb: "https://i.ibb.co/DHN7zxDz/2-40.png" },
+                    { id: "2-41", thumb: "https://i.ibb.co/x8R1zFb8/2-41.png" },
+                    { id: "2-42", thumb: "https://i.ibb.co/Bb0b52z/2-42.png" },
+                    { id: "2-43", thumb: "https://i.ibb.co/mCJ7t6bZ/2-43.png" },
+                    { id: "2-44", thumb: "https://i.ibb.co/FFQjFQK/2-44.png" },
+                    { id: "2-45", thumb: "https://i.ibb.co/1G0S7L8L/2-45.png" },
+                    { id: "2-46", thumb: "https://i.ibb.co/QFBwZSfh/2-46.png" },
+                    { id: "2-47", thumb: "https://i.ibb.co/Lzrp5Jrs/2-47.png" },
+                    { id: "2-48", thumb: "https://i.ibb.co/Xr6HVQ33/2-48.png" },
+                    { id: "2-49", thumb: "https://i.ibb.co/Fq6rkkqm/2-49.png" },
+                    { id: "2-50", thumb: "https://i.ibb.co/Xf8mmN8C/2-50.png" },
+                    { id: "2-51", thumb: "https://i.ibb.co/0VCz57hd/2-51.png" },
+                    { id: "2-52", thumb: "https://i.ibb.co/DgHGMs8y/2-52.png" },
+                    { id: "2-53", thumb: "https://i.ibb.co/Wps1sfRc/2-53.png" },
+                    { id: "2-54", thumb: "https://i.ibb.co/nMbxJBZ0/2-54.png" },
+                    { id: "2-55", thumb: "https://i.ibb.co/C5LwSqmD/2-55.png" },
+                    { id: "2-56", thumb: "https://i.ibb.co/GQrxkpgy/2-56.png" },
+                    { id: "2-57", thumb: "https://i.ibb.co/6R4n2KF2/2-57.png" },
+                    { id: "2-58", thumb: "https://i.ibb.co/wbbfXpS/2-58.png" },
+                    { id: "2-59", thumb: "https://i.ibb.co/JwVG2FSg/2-59.png" },
+                    { id: "2-60", thumb: "https://i.ibb.co/MDvjHVnp/2-60.png" },
+                    { id: "2-61", thumb: "https://i.ibb.co/Rp0nQLr2/2-61.png" },
+                    { id: "2-62", thumb: "https://i.ibb.co/KcMJD8cz/2-62.png" },
+                    { id: "2-63", thumb: "https://i.ibb.co/TxV9Jbr5/2-63.png" },
+                    { id: "2-64", thumb: "https://i.ibb.co/0yRjjFFZ/2-64.png" },
+                    { id: "2-65", thumb: "https://i.ibb.co/LDq3YMYG/2-65.png" },
+                    { id: "2-66", thumb: "https://i.ibb.co/twgx94HV/2-66.png" },
+                    { id: "2-67", thumb: "https://i.ibb.co/jkn7GmC1/2-67.png" },
+                    { id: "2-68", thumb: "https://i.ibb.co/8g6YcY2f/2-68.png" },
+                    { id: "2-69", thumb: "https://i.ibb.co/rGGvc15D/2-69.png" },
+                    { id: "2-70", thumb: "https://i.ibb.co/Z1LVF8bn/2-70.png" },
+                    { id: "2-71", thumb: "https://i.ibb.co/jvWVKk2K/2-71.png" },
+                    { id: "2-72", thumb: "https://i.ibb.co/s99cS5bV/2-72.png" },
+                    { id: "2-73", thumb: "https://i.ibb.co/mC0ywjMT/2-73.png" },
+                    { id: "2-74", thumb: "https://i.ibb.co/VY0byDnD/2-74.png" },
+                    { id: "2-75", thumb: "https://i.ibb.co/LhRftfrG/2-75.png" },
+                    { id: "2-76", thumb: "https://i.ibb.co/pBCwXZqJ/2-76.png" },
+                    { id: "2-77", thumb: "https://i.ibb.co/CsKWcbQq/2-77.png" },
+                    { id: "2-78", thumb: "https://i.ibb.co/hxJ8786g/2-78.png" },
+                    { id: "2-79", thumb: "https://i.ibb.co/PGtC0NZX/2-79.png" },
+                    { id: "2-80", thumb: "https://i.ibb.co/yBq5H8pn/2-80.png" },
+                    { id: "2-81", thumb: "https://i.ibb.co/0VGNKg3t/2-81.png" },
+                    { id: "2-82", thumb: "https://i.ibb.co/C5WYMvCg/2-82.png" },
+                    { id: "2-83", thumb: "https://i.ibb.co/Z1XD0vb9/2-83.png" },
+                    { id: "2-84", thumb: "https://i.ibb.co/KxkbFmXS/2-84.png" },
+                    { id: "2-85", thumb: "https://i.ibb.co/cKXLjscT/2-85.png" },
+                    { id: "2-86", thumb: "https://i.ibb.co/604gbMFJ/2.png" }
+                ]
+            },
+            {
+                id: "group-3",
+                name: "03",
+                images: [
+                    { id: "3-1", thumb: "https://i.ibb.co/4ZKPHphJ/3-1.png" },
+                    { id: "3-2", thumb: "https://i.ibb.co/KpWPrgT0/3-2.png" },
+                    { id: "3-3", thumb: "https://i.ibb.co/wh7kg02k/3-3.png" },
+                    { id: "3-4", thumb: "https://i.ibb.co/KxnbCg5K/3-4.png" },
+                    { id: "3-5", thumb: "https://i.ibb.co/5NjzPzs/3-5.png" },
+                    { id: "3-6", thumb: "https://i.ibb.co/d0MCZT3R/3-6.png" },
+                    { id: "3-7", thumb: "https://i.ibb.co/dwPwXH3L/3-7.png" },
+                    { id: "3-8", thumb: "https://i.ibb.co/3mqVXYM0/3-8.png" },
+                    { id: "3-9", thumb: "https://i.ibb.co/j9S97SjR/3-9.png" },
+                    { id: "3-10", thumb: "https://i.ibb.co/gLVHPJJT/3-10.png" },
+                    { id: "3-11", thumb: "https://i.ibb.co/B545W55d/3-11.png" },
+                    { id: "3-12", thumb: "https://i.ibb.co/CKVBLDFX/3-12.png" },
+                    { id: "3-13", thumb: "https://i.ibb.co/TBdtkDBD/3-13.png" },
+                    { id: "3-14", thumb: "https://i.ibb.co/kPBTTX5/3-14.png" },
+                    { id: "3-15", thumb: "https://i.ibb.co/Pv8s6Tq5/3-15.png" },
+                    { id: "3-16", thumb: "https://i.ibb.co/q3TKDDj8/3-16.png" },
+                    { id: "3-17", thumb: "https://i.ibb.co/Z1SH3n33/3-17.png" },
+                    { id: "3-18", thumb: "https://i.ibb.co/kgtKD0mB/3-18.png" },
+                    { id: "3-19", thumb: "https://i.ibb.co/d4pC4s8M/3-19.png" },
+                    { id: "3-20", thumb: "https://i.ibb.co/LX24LRt9/3-20.png" },
+                    { id: "3-21", thumb: "https://i.ibb.co/GfrSj0LS/3-21.png" },
+                    { id: "3-22", thumb: "https://i.ibb.co/C35X6Zqd/3-22.png" },
+                    { id: "3-23", thumb: "https://i.ibb.co/Q7hvHKnt/3-23.png" },
+                    { id: "3-24", thumb: "https://i.ibb.co/K8jDMyG/3-24.png" },
+                    { id: "3-25", thumb: "https://i.ibb.co/SD2mxvrw/3-25.png" },
+                    { id: "3-26", thumb: "https://i.ibb.co/0VKbDNNq/3-26.png" },
+                    { id: "3-27", thumb: "https://i.ibb.co/zTJK1Wh7/3-27.png" },
+                    { id: "3-28", thumb: "https://i.ibb.co/ds9JS1vB/3-28.png" },
+                    { id: "3-29", thumb: "https://i.ibb.co/1GS6dWS8/3-29.png" },
+                    { id: "3-30", thumb: "https://i.ibb.co/93W64D39/3-30.png" },
+                    { id: "3-31", thumb: "https://i.ibb.co/svt6C2DM/3-31.png" },
+                    { id: "3-32", thumb: "https://i.ibb.co/8DdYNXhG/3-32.png" },
+                    { id: "3-33", thumb: "https://i.ibb.co/1tY4b00b/3-33.png" },
+                    { id: "3-34", thumb: "https://i.ibb.co/5hBzwr8w/3-34.png" },
+                    { id: "3-35", thumb: "https://i.ibb.co/spgjZQ2g/3-35.png" },
+                    { id: "3-36", thumb: "https://i.ibb.co/k2h008jN/3-36.png" },
+                    { id: "3-37", thumb: "https://i.ibb.co/Q3VLdvXp/3-37.png" },
+                    { id: "3-38", thumb: "https://i.ibb.co/LXZ2skmd/3-38.png" },
+                    { id: "3-39", thumb: "https://i.ibb.co/99mXX5QJ/3-39.png" },
+                    { id: "3-40", thumb: "https://i.ibb.co/sp6btqDr/3-40.png" },
+                    { id: "3-41", thumb: "https://i.ibb.co/nNd3rkD5/3-41.png" },
+                    { id: "3-42", thumb: "https://i.ibb.co/nNgJnv6v/3-42.png" },
+                    { id: "3-43", thumb: "https://i.ibb.co/JFpfBZ3G/3-43.png" },
+                    { id: "3-44", thumb: "https://i.ibb.co/W44XVqP3/3-44.png" },
+                    { id: "3-45", thumb: "https://i.ibb.co/WNfHq6nq/3-45.png" },
+                    { id: "3-46", thumb: "https://i.ibb.co/rfRcVT45/3-46.png" },
+                    { id: "3-47", thumb: "https://i.ibb.co/G4SVL07K/3-47.png" },
+                    { id: "3-48", thumb: "https://i.ibb.co/hFpYP0Kg/3-48.png" },
+                    { id: "3-49", thumb: "https://i.ibb.co/zWJMbYD8/3-49.png" },
+                    { id: "3-50", thumb: "https://i.ibb.co/FLnnd32w/3-50.png" },
+                    { id: "3-51", thumb: "https://i.ibb.co/1tvMYNNr/3-51.png" },
+                    { id: "3-52", thumb: "https://i.ibb.co/WpKvpdpv/3-52.png" },
+                    { id: "3-53", thumb: "https://i.ibb.co/LXdfxcD8/3-53.png" },
+                    { id: "3-54", thumb: "https://i.ibb.co/Hp1G0sKx/3-54.png" },
+                    { id: "3-55", thumb: "https://i.ibb.co/MyMWQpbq/3-55.png" },
+                    { id: "3-56", thumb: "https://i.ibb.co/TBJ0kzs0/3-56.png" },
+                    { id: "3-57", thumb: "https://i.ibb.co/FPD4MRc/3-57.png" },
+                    { id: "3-58", thumb: "https://i.ibb.co/G4GMSn4M/3-58.png" },
+                    { id: "3-59", thumb: "https://i.ibb.co/ccK3ZH4k/3-59.png" },
+                    { id: "3-60", thumb: "https://i.ibb.co/qMFGsxbL/3-60.png" },
+                    { id: "3-61", thumb: "https://i.ibb.co/fYpb1gQV/3-61.png" },
+                    { id: "3-62", thumb: "https://i.ibb.co/FLgSBSCr/3-62.png" },
+                    { id: "3-63", thumb: "https://i.ibb.co/ymcYDMxB/3-63.png" },
+                    { id: "3-64", thumb: "https://i.ibb.co/yBxWr0f7/3-64.png" },
+                    { id: "3-65", thumb: "https://i.ibb.co/TMxrMVg4/3-65.png" },
+                    { id: "3-66", thumb: "https://i.ibb.co/kVdh6yZN/3-66.png" },
+                    { id: "3-67", thumb: "https://i.ibb.co/Pzs3vYkQ/3-67.png" },
+                    { id: "3-68", thumb: "https://i.ibb.co/Q7vhYHLk/3-68.png" },
+                    { id: "3-69", thumb: "https://i.ibb.co/9KXhtHs/3-69.png" },
+                    { id: "3-70", thumb: "https://i.ibb.co/zVQLHQWX/3-70.png" },
+                    { id: "3-71", thumb: "https://i.ibb.co/0VvTkK6B/3-71.png" },
+                    { id: "3-72", thumb: "https://i.ibb.co/6cWQXMQN/3-72.png" },
+                    { id: "3-73", thumb: "https://i.ibb.co/B5krn5M2/3-73.png" },
+                    { id: "3-74", thumb: "https://i.ibb.co/XfPmy0KP/3-74.png" },
+                    { id: "3-75", thumb: "https://i.ibb.co/sdbPJDkQ/3-75.png" },
+                    { id: "3-76", thumb: "https://i.ibb.co/9mRK9dV5/3-76.png" },
+                    { id: "3-77", thumb: "https://i.ibb.co/Fb3yQmPp/3-77.png" },
+                    { id: "3-78", thumb: "https://i.ibb.co/k20LtH4F/3-78.png" },
+                    { id: "3-79", thumb: "https://i.ibb.co/NgWF1YXF/3-79.png" },
+                    { id: "3-80", thumb: "https://i.ibb.co/1Yrj7sng/3-80.png" },
+                    { id: "3-81", thumb: "https://i.ibb.co/KpQ7Rqfs/3-81.png" },
+                    { id: "3-82", thumb: "https://i.ibb.co/1Gw8qYN6/3-82.png" },
+                    { id: "3-83", thumb: "https://i.ibb.co/Fk641XFw/3-83.png" },
+                    { id: "3-84", thumb: "https://i.ibb.co/fd0w12fT/3-84.png" },
+                    { id: "3-85", thumb: "https://i.ibb.co/d48NYJSN/3-85.png" },
+                    { id: "3-86", thumb: "https://i.ibb.co/cK9GCRjS/3.png" }
+                ]
+            },
+            {
+                id: "group-4",
+                name: "04",
+                images: [
+                    { id: "4-1", thumb: "https://i.ibb.co/BK6dGrFz/4-1.png" },
+                    { id: "4-2", thumb: "https://i.ibb.co/7xmmVXkC/4-2.png" },
+                    { id: "4-3", thumb: "https://i.ibb.co/nq3MwkF4/4-3.png" },
+                    { id: "4-4", thumb: "https://i.ibb.co/k6HXsS8m/4-4.png" },
+                    { id: "4-5", thumb: "https://i.ibb.co/Z1dLwfww/4-5.png" },
+                    { id: "4-6", thumb: "https://i.ibb.co/C3tRhCpz/4-6.png" },
+                    { id: "4-7", thumb: "https://i.ibb.co/Cp3DnXcj/4-7.png" },
+                    { id: "4-8", thumb: "https://i.ibb.co/TDrRjFNG/4-8.png" },
+                    { id: "4-9", thumb: "https://i.ibb.co/Ng4d9fMg/4-9.png" },
+                    { id: "4-10", thumb: "https://i.ibb.co/ff386jk/4-10.png" },
+                    { id: "4-11", thumb: "https://i.ibb.co/qLc0jF1y/4-11.png" },
+                    { id: "4-12", thumb: "https://i.ibb.co/BKS6NcC3/4-12.png" },
+                    { id: "4-13", thumb: "https://i.ibb.co/rRT7yQXx/4-13.png" },
+                    { id: "4-14", thumb: "https://i.ibb.co/SFtfgYh/4-14.png" },
+                    { id: "4-15", thumb: "https://i.ibb.co/G40TDP4s/4-15.png" },
+                    { id: "4-16", thumb: "https://i.ibb.co/6JbZMc1v/4-16.png" },
+                    { id: "4-17", thumb: "https://i.ibb.co/4RdD8KBW/4-17.png" },
+                    { id: "4-18", thumb: "https://i.ibb.co/39xGbhn2/4-18.png" },
+                    { id: "4-19", thumb: "https://i.ibb.co/qYY2zFCh/4-19.png" },
+                    { id: "4-20", thumb: "https://i.ibb.co/gF6V0X2T/4-20.png" },
+                    { id: "4-21", thumb: "https://i.ibb.co/Mxf1K8dM/4-21.png" },
+                    { id: "4-22", thumb: "https://i.ibb.co/5W4VKSJF/4-22.png" },
+                    { id: "4-23", thumb: "https://i.ibb.co/1JtMQRcM/4-23.png" },
+                    { id: "4-24", thumb: "https://i.ibb.co/DDTM9xCY/4-24.png" },
+                    { id: "4-25", thumb: "https://i.ibb.co/KjP8tmq9/4-25.png" },
+                    { id: "4-26", thumb: "https://i.ibb.co/BH2wwtt4/4-26.png" },
+                    { id: "4-27", thumb: "https://i.ibb.co/gLCMbK6Q/4-27.png" },
+                    { id: "4-28", thumb: "https://i.ibb.co/7xsR1w86/4-28.png" },
+                    { id: "4-29", thumb: "https://i.ibb.co/2Yfftr8b/4-29.png" },
+                    { id: "4-30", thumb: "https://i.ibb.co/Pvpnhh0g/4-30.png" },
+                    { id: "4-31", thumb: "https://i.ibb.co/ymkYYNGY/4-31.png" },
+                    { id: "4-32", thumb: "https://i.ibb.co/mrxWk3Gf/4-32.png" },
+                    { id: "4-33", thumb: "https://i.ibb.co/0RYscYfY/4-33.png" },
+                    { id: "4-34", thumb: "https://i.ibb.co/Ps5YTFzT/4-34.png" },
+                    { id: "4-35", thumb: "https://i.ibb.co/GQV2nxP1/4-35.png" },
+                    { id: "4-36", thumb: "https://i.ibb.co/Q3VygZ2c/4-36.png" },
+                    { id: "4-37", thumb: "https://i.ibb.co/CK42nbFL/4-37.png" },
+                    { id: "4-38", thumb: "https://i.ibb.co/Ndp62MVw/4-38.png" },
+                    { id: "4-39", thumb: "https://i.ibb.co/0VG2RFyQ/4-39.png" },
+                    { id: "4-40", thumb: "https://i.ibb.co/jPFJRp4n/4-40.png" },
+                    { id: "4-41", thumb: "https://i.ibb.co/gZZRHTrG/4-41.png" },
+                    { id: "4-42", thumb: "https://i.ibb.co/Z6CTZpYF/4-42.png" },
+                    { id: "4-43", thumb: "https://i.ibb.co/GQbTVwbT/4-43.png" },
+                    { id: "4-44", thumb: "https://i.ibb.co/99ntG3Q5/4-44.png" },
+                    { id: "4-45", thumb: "https://i.ibb.co/PXkc3Sm/4-45.png" },
+                    { id: "4-46", thumb: "https://i.ibb.co/KxSPfSgh/4-46.png" },
+                    { id: "4-47", thumb: "https://i.ibb.co/DHM6MkjD/4-47.png" },
+                    { id: "4-48", thumb: "https://i.ibb.co/Tqx1JxLq/4-48.png" },
+                    { id: "4-49", thumb: "https://i.ibb.co/ZvT0Cn1/4-49.png" },
+                    { id: "4-50", thumb: "https://i.ibb.co/xK01hmvm/4-50.png" },
+                    { id: "4-51", thumb: "https://i.ibb.co/xKyYg15f/4-51.png" },
+                    { id: "4-52", thumb: "https://i.ibb.co/QFj0fW3B/4-52.png" },
+                    { id: "4-53", thumb: "https://i.ibb.co/GvZbLTcP/4-53.png" },
+                    { id: "4-54", thumb: "https://i.ibb.co/wrz1PFnK/4-54.png" },
+                    { id: "4-55", thumb: "https://i.ibb.co/CsWQQWW9/4-55.png" },
+                    { id: "4-56", thumb: "https://i.ibb.co/pVCL2rw/4-56.png" },
+                    { id: "4-57", thumb: "https://i.ibb.co/Vpxkf8RL/4-57.png" },
+                    { id: "4-58", thumb: "https://i.ibb.co/ds72BpKV/4-58.png" },
+                    { id: "4-59", thumb: "https://i.ibb.co/LXdX4RDd/4-59.png" },
+                    { id: "4-60", thumb: "https://i.ibb.co/QjF520sF/4-60.png" },
+                    { id: "4-61", thumb: "https://i.ibb.co/Y7Xk7RhX/4-61.png" },
+                    { id: "4-62", thumb: "https://i.ibb.co/9kHKXDkR/4-62.png" },
+                    { id: "4-63", thumb: "https://i.ibb.co/fYHtWstS/4-63.png" },
+                    { id: "4-64", thumb: "https://i.ibb.co/fdCdxdVt/4-64.png" },
+                    { id: "4-65", thumb: "https://i.ibb.co/nNWyXBJH/4-65.png" },
+                    { id: "4-66", thumb: "https://i.ibb.co/VcFqhBpW/4-66.png" },
+                    { id: "4-67", thumb: "https://i.ibb.co/4n84r1XH/4-67.png" },
+                    { id: "4-68", thumb: "https://i.ibb.co/gZWGMBDm/4-68.png" },
+                    { id: "4-69", thumb: "https://i.ibb.co/Cs2D6BBY/4-69.png" },
+                    { id: "4-70", thumb: "https://i.ibb.co/ym8SS0Rw/4-70.png" },
+                    { id: "4-71", thumb: "https://i.ibb.co/VcH9C6pv/4-71.png" },
+                    { id: "4-72", thumb: "https://i.ibb.co/S7XfqdNq/4-72.png" },
+                    { id: "4-73", thumb: "https://i.ibb.co/dJrKwQ9V/4-73.png" },
+                    { id: "4-74", thumb: "https://i.ibb.co/Sw6kYJSr/4-74.png" },
+                    { id: "4-75", thumb: "https://i.ibb.co/RTwRZFkh/4-75.png" },
+                    { id: "4-76", thumb: "https://i.ibb.co/ks5xrS4k/4-76.png" },
+                    { id: "4-77", thumb: "https://i.ibb.co/R4JbYN8R/4-77.png" },
+                    { id: "4-78", thumb: "https://i.ibb.co/Y7dVKsH0/4.png" }
+                ]
+            },
+            {
+                id: "group-5",
+                name: "05",
+                images: [
+                    { id: "5-1", thumb: "https://i.ibb.co/pBQjh0yP/5-1.png" },
+                    { id: "5-2", thumb: "https://i.ibb.co/PZ2897Fh/5-2.png" },
+                    { id: "5-3", thumb: "https://i.ibb.co/NnkmnkyS/5-3.png" },
+                    { id: "5-4", thumb: "https://i.ibb.co/27yrpDWc/5-4.png" },
+                    { id: "5-5", thumb: "https://i.ibb.co/KxpvJvTx/5-5.png" },
+                    { id: "5-6", thumb: "https://i.ibb.co/j9D6hMJb/5-6.png" },
+                    { id: "5-7", thumb: "https://i.ibb.co/HLz6VwtL/5-7.png" },
+                    { id: "5-8", thumb: "https://i.ibb.co/21Db7kkd/5-8.png" },
+                    { id: "5-9", thumb: "https://i.ibb.co/VW3Dgk4Y/5-9.png" },
+                    { id: "5-10", thumb: "https://i.ibb.co/KjRXg1mX/5-10.png" },
+                    { id: "5-11", thumb: "https://i.ibb.co/LzRrPgPb/5-11.png" },
+                    { id: "5-12", thumb: "https://i.ibb.co/5xcY1GV5/5-12.png" },
+                    { id: "5-13", thumb: "https://i.ibb.co/N26jQ0vC/5-13.png" },
+                    { id: "5-14", thumb: "https://i.ibb.co/Z6h1Sf0b/5-14.png" },
+                    { id: "5-15", thumb: "https://i.ibb.co/GQRrTJt5/5-15.png" },
+                    { id: "5-16", thumb: "https://i.ibb.co/7t1qLgs9/5-16.png" },
+                    { id: "5-17", thumb: "https://i.ibb.co/1HD2dLK/5-17.png" },
+                    { id: "5-18", thumb: "https://i.ibb.co/27h6Wr36/5-18.png" },
+                    { id: "5-19", thumb: "https://i.ibb.co/dsyjLVhf/5-19.png" },
+                    { id: "5-20", thumb: "https://i.ibb.co/20mprWTW/5-20.png" },
+                    { id: "5-21", thumb: "https://i.ibb.co/TB7gdnnb/5-21.png" },
+                    { id: "5-22", thumb: "https://i.ibb.co/N6vFQRhf/5-22.png" },
+                    { id: "5-23", thumb: "https://i.ibb.co/twv1Qtd0/5-23.png" },
+                    { id: "5-24", thumb: "https://i.ibb.co/DHMPgnQX/5.png" }
+                ]
+            },
+            {
+                id: "group-6",
+                name: "06",
+                images: [
+                    { id: "6-1", thumb: "https://i.ibb.co/rK7SGqYP/6-1.png" },
+                    { id: "6-2", thumb: "https://i.ibb.co/VpJFbcqx/6-2.png" },
+                    { id: "6-3", thumb: "https://i.ibb.co/JWGVfwXB/6-3.png" },
+                    { id: "6-4", thumb: "https://i.ibb.co/XkxwCKrj/6-4.png" },
+                    { id: "6-5", thumb: "https://i.ibb.co/pjW3p2xw/6-5.png" },
+                    { id: "6-6", thumb: "https://i.ibb.co/hRRdSsyb/6-6.png" },
+                    { id: "6-7", thumb: "https://i.ibb.co/V0tn45KY/6.png" }
+                ]
+            },
+            {
+                id: "group-7",
+                name: "07",
+                images: [
+                    { id: "7-1", thumb: "https://i.ibb.co/SDTw44G8/7-1.png" },
+                    { id: "7-2", thumb: "https://i.ibb.co/8nXCnYw7/7-2.png" },
+                    { id: "7-3", thumb: "https://i.ibb.co/BV61YRBY/7.png" }
+                ]
+            },
+            {
+                id: "img-8",
+                name: "08",
+                images: [{ id: "8", thumb: "https://i.ibb.co/5xt93025/8.png" }]
+            },
+            {
+                id: "img-9",
+                name: "09",
+                images: [{ id: "9", thumb: "https://i.ibb.co/vxbDJv8c/9.png" }]
+            },
+            {
+                id: "img-10",
+                name: "10",
+                images: [{ id: "10", thumb: "https://i.ibb.co/8grgGbJs/10.png" }]
+            },
+            {
+                id: "img-11",
+                name: "11",
+                images: [{ id: "11", thumb: "https://i.ibb.co/KxVYssw6/11.png" }]
+            },
+            {
+                id: "img-12",
+                name: "12",
+                images: [{ id: "12", thumb: "https://i.ibb.co/4n7wk918/12.png" }]
+            },
+            {
+                id: "img-13",
+                name: "13",
+                images: [{ id: "13", thumb: "https://i.ibb.co/sp9CWXcn/13.png" }]
+            },
+            {
+                id: "img-14",
+                name: "14",
+                images: [{ id: "14", thumb: "https://i.ibb.co/LXMn8BMm/14.png" }]
+            },
+            {
+                id: "img-15",
+                name: "15",
+                images: [{ id: "15", thumb: "https://i.ibb.co/JF23r79j/15.png" }]
+            },
+            {
+                id: "img-16",
+                name: "16",
+                images: [{ id: "16", thumb: "https://i.ibb.co/d49pF6wq/16.png" }]
+            },
+            {
+                id: "img-17",
+                name: "17",
+                images: [{ id: "17", thumb: "https://i.ibb.co/S4Lx3xpj/17.png" }]
+            }
+        ];
+
+        let currentProductIdx = 0; // Default to contact page (index 0)
+        let currentFlipbookIdx = 0;
+        let currentViewMode = 'grid';
+        let autoplayTimer = null;
+        let isAutoplaying = false;
+        let selectedMap = {}; // key: `${productIdx}-${imageIdx}` -> boolean
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const hash = window.location.hash.replace('#', '');
+            if (hash) {
+                const foundIdx = products.findIndex(p => p.id === hash);
+                if (foundIdx !== -1) {
+                    currentProductIdx = foundIdx;
+                }
+            }
+
+            renderNavigation();
+            loadProduct(currentProductIdx);
+
+            window.addEventListener('keydown', (e) => {
+                if (currentViewMode === 'flipbook' && !products[currentProductIdx].isContact) {
+                    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') nextFlipbookImage();
+                    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') prevFlipbookImage();
+                }
+            });
+        });
+
+        function renderNavigation() {
+            const tabs = document.getElementById('product-tabs');
+            tabs.innerHTML = '';
+
+            products.forEach((prod, idx) => {
+                const active = idx === currentProductIdx;
+                const btn = document.createElement('button');
+                btn.className = `px-3.5 py-2 rounded-xl text-xs font-medium tracking-wide transition flex items-center space-x-1.5 whitespace-nowrap ${active ? 'bg-zinc-200 text-black font-semibold shadow' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`;
+                
+                if (prod.isContact) {
+                    btn.innerHTML = `<i class="fa-solid fa-phone text-xs"></i><span>Contact</span>`;
+                } else {
+                    btn.innerHTML = `<span>${prod.name}</span>`;
+                }
+
+                btn.onclick = () => switchProduct(idx);
+                tabs.appendChild(btn);
+            });
+        }
+
+        function switchProduct(idx) {
+            currentProductIdx = idx;
+            currentFlipbookIdx = 0;
+            if (isAutoplaying) toggleAutoplay();
+
+            window.location.hash = products[idx].id;
+            renderNavigation();
+            loadProduct(idx);
+        }
+
+        function loadProduct(idx) {
+            const prod = products[idx];
+            const gridEl = document.getElementById('view-grid');
+            const flipEl = document.getElementById('view-flipbook');
+            const modeToggleWrapper = document.getElementById('view-mode-wrapper');
+
+            if (prod.isContact) {
+                modeToggleWrapper.style.display = 'none';
+                gridEl.classList.remove('hidden');
+                flipEl.classList.add('hidden');
+                renderContactPage();
+            } else {
+                modeToggleWrapper.style.display = 'flex';
+                if (currentViewMode === 'grid') {
+                    gridEl.classList.remove('hidden');
+                    flipEl.classList.add('hidden');
+                    renderGrid();
+                } else {
+                    gridEl.classList.add('hidden');
+                    flipEl.classList.remove('hidden');
+                    flipEl.classList.add('grid');
+                    renderFlipbook();
+                }
+                updateBatchBadge();
+            }
+        }
+
+        function setViewMode(mode) {
+            if (products[currentProductIdx].isContact) return;
+            currentViewMode = mode;
+            const gridEl = document.getElementById('view-grid');
+            const flipEl = document.getElementById('view-flipbook');
+            const gBtn = document.getElementById('mode-grid-btn');
+            const fBtn = document.getElementById('mode-flipbook-btn');
+
+            if (mode === 'grid') {
+                gridEl.classList.remove('hidden');
+                flipEl.classList.add('hidden');
+                gBtn.className = "px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 bg-zinc-200 text-black font-semibold shadow";
+                fBtn.className = "px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 text-zinc-400 hover:text-white";
+                if (isAutoplaying) toggleAutoplay();
+            } else {
+                gridEl.classList.add('hidden');
+                flipEl.classList.remove('hidden');
+                flipEl.classList.add('grid');
+                fBtn.className = "px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 bg-zinc-200 text-black font-semibold shadow";
+                gBtn.className = "px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 text-zinc-400 hover:text-white";
+                renderFlipbook();
+            }
+        }
+
+        // ================= CONTACT LANDING PAGE =================
+        function renderContactPage() {
+            const container = document.getElementById('grid-container');
+            container.className = "w-full flex items-center justify-center py-16";
+            container.innerHTML = `
+                <div class="bg-cardbg border border-zinc-800 rounded-3xl p-8 sm:p-12 max-w-md w-full shadow-2xl flex flex-col items-center text-center animate-subtle-float">
+                    <div class="w-16 h-16 rounded-2xl bg-surface flex items-center justify-center border border-zinc-700/60 mb-6 text-zinc-200 shadow-inner">
+                        <i class="fa-solid fa-headset text-2xl"></i>
+                    </div>
+                    <p class="text-xs text-zinc-400 tracking-widest uppercase mb-2">Get in Touch</p>
+                    <h2 class="text-2xl sm:text-3xl font-semibold text-white mb-8 tracking-wide font-mono">+91 85273 41413</h2>
+                    
+                    <div class="grid grid-cols-2 gap-4 w-full">
+                        <a href="tel:+918527341413" class="px-5 py-3.5 bg-surface hover:bg-zinc-800 text-zinc-200 rounded-2xl border border-zinc-700/80 transition flex items-center justify-center space-x-3 text-xs font-medium shadow">
+                            <i class="fa-solid fa-phone text-sm text-zinc-400"></i>
+                            <span>Call Us</span>
+                        </a>
+                        <a href="https://wa.me/918527341413" target="_blank" class="px-5 py-3.5 bg-zinc-200 hover:bg-white text-black rounded-2xl transition flex items-center justify-center space-x-3 text-xs font-semibold shadow">
+                            <i class="fa-brands fa-whatsapp text-sm text-emerald-600"></i>
+                            <span>WhatsApp</span>
+                        </a>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ================= GRID VIEW RENDERING =================
+        function renderGrid() {
+            const prod = products[currentProductIdx];
+            const container = document.getElementById('grid-container');
+            container.className = "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4";
+            container.innerHTML = '';
+
+            prod.images.forEach((img, idx) => {
+                const key = `${currentProductIdx}-${idx}`;
+                const isSelected = !!selectedMap[key];
+
+                const card = document.createElement('div');
+                card.className = `relative aspect-square-box bg-cardbg rounded-2xl overflow-hidden border ${isSelected ? 'border-zinc-200 ring-2 ring-zinc-500/30' : 'border-zinc-800/80'} group shadow-lg hover:border-zinc-600 transition`;
+                card.innerHTML = `
+                    <img src="${img.thumb}" alt="asset" class="w-full h-full object-contain p-2 group-hover:scale-105 transition duration-300 pointer-events-none" onerror="this.src='https://placehold.co/400x400/141418/e5e5e7?text=Error'">
+                    <div class="absolute top-2 left-2 bg-black/70 backdrop-blur-md px-2 py-0.5 rounded text-[10px] font-mono text-zinc-300">#${idx + 1}</div>
+                    
+                    <!-- Checkbox selection for selective sharing / downloading -->
+                    <button onclick="toggleGridSelection(${idx})" class="absolute top-2 right-2 w-7 h-7 rounded-lg bg-black/70 backdrop-blur-md flex items-center justify-center ${isSelected ? 'text-white bg-zinc-700 border border-zinc-500' : 'text-zinc-400 hover:text-white'} transition">
+                        <i class="fa-solid ${isSelected ? 'fa-square-check' : 'fa-square'}"></i>
+                    </button>
+
+                    <!-- Hover Quick Actions Footer -->
+                    <div class="absolute inset-x-2 bottom-2 bg-surface/95 backdrop-blur-md p-2 rounded-xl flex items-center justify-around opacity-0 group-hover:opacity-100 transition shadow-xl border border-zinc-700/50">
+                        <button onclick="inspectInFlipbook(${idx})" title="Inspect" class="text-zinc-300 hover:text-white text-xs p-1 transition"><i class="fa-solid fa-eye"></i></button>
+                        <button onclick="downloadSingle(${idx})" title="Download" class="text-zinc-300 hover:text-white text-xs p-1 transition"><i class="fa-solid fa-download"></i></button>
+                        <button onclick="shareSingle(${idx})" title="Share" class="text-zinc-300 hover:text-white text-xs p-1 transition"><i class="fa-solid fa-share-nodes"></i></button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function toggleGridSelection(idx) {
+            const key = `${currentProductIdx}-${idx}`;
+            selectedMap[key] = !selectedMap[key];
+            renderGrid();
+            renderFilmstrip();
+            updateBatchBadge();
+            showToast(selectedMap[key] ? `Item #${idx + 1} selected` : `Item #${idx + 1} unselected`, 'info');
+        }
+
+        function updateBatchBadge() {
+            let count = 0;
+            const prod = products[currentProductIdx];
+            if (!prod.images) return;
+            prod.images.forEach((_, idx) => {
+                if (selectedMap[`${currentProductIdx}-${idx}`]) count++;
+            });
+            document.getElementById('selected-badge-count').innerText = count;
+            document.getElementById('drawer-counter').innerText = `${count} selected`;
+        }
+
+        function clearSelection() {
+            const prod = products[currentProductIdx];
+            prod.images.forEach((_, idx) => {
+                delete selectedMap[`${currentProductIdx}-${idx}`];
+            });
+            renderGrid();
+            renderFilmstrip();
+            updateBatchBadge();
+            showToast("Selection cleared", 'info');
+        }
+
+        // ================= FLIPBOOK INSPECTOR RENDERING =================
+        function renderFlipbook() {
+            const prod = products[currentProductIdx];
+            const imgObj = prod.images[currentFlipbookIdx];
+
+            document.getElementById('flipbook-main-image').src = imgObj.thumb;
+            document.getElementById('flipbook-counter').innerText = `${String(currentFlipbookIdx + 1).padStart(2, '0')} / ${String(prod.images.length).padStart(2, '0')}`;
+
+            const key = `${currentProductIdx}-${currentFlipbookIdx}`;
+            const selectIcon = document.getElementById('flipbook-select-icon');
+            if (selectedMap[key]) {
+                selectIcon.className = "fa-solid fa-square-check text-white text-lg";
+            } else {
+                selectIcon.className = "fa-regular fa-square text-lg";
+            }
+
+            renderFilmstrip();
+        }
+
+        function renderFilmstrip() {
+            const prod = products[currentProductIdx];
+            const container = document.getElementById('filmstrip-container');
+            container.innerHTML = '';
+
+            prod.images.forEach((img, idx) => {
+                const key = `${currentProductIdx}-${idx}`;
+                const isSelected = !!selectedMap[key];
+                const isActive = idx === currentFlipbookIdx;
+
+                const thumb = document.createElement('div');
+                thumb.className = `filmstrip-item relative aspect-square-box bg-surface rounded-xl overflow-hidden border cursor-pointer transition group ${isActive ? 'ring-2 ring-zinc-200 border-transparent' : 'border-zinc-800 hover:border-zinc-600'}`;
+                thumb.onclick = () => {
+                    currentFlipbookIdx = idx;
+                    renderFlipbook();
+                };
+                thumb.innerHTML = `
+                    <img src="${img.thumb}" alt="thumb" class="w-full h-full object-cover group-hover:scale-105 transition pointer-events-none">
+                    <div class="absolute top-1 left-1 bg-black/70 text-[9px] px-1 rounded font-mono text-zinc-300">${idx + 1}</div>
+                    <div class="absolute top-1 right-1 text-[10px] ${isSelected ? 'text-zinc-200' : 'text-transparent group-hover:text-zinc-400'}">
+                        <i class="fa-solid ${isSelected ? 'fa-check-circle' : 'fa-circle'}"></i>
+                    </div>
+                `;
+                container.appendChild(thumb);
+            });
+        }
+
+        function inspectInFlipbook(idx) {
+            currentFlipbookIdx = idx;
+            setViewMode('flipbook');
+        }
+
+        function nextFlipbookImage() {
+            const prod = products[currentProductIdx];
+            currentFlipbookIdx = (currentFlipbookIdx + 1) % prod.images.length;
+            renderFlipbook();
+        }
+
+        function prevFlipbookImage() {
+            const prod = products[currentProductIdx];
+            currentFlipbookIdx = (currentFlipbookIdx - 1 + prod.images.length) % prod.images.length;
+            renderFlipbook();
+        }
+
+        function resetFlipbook() {
+            currentFlipbookIdx = 0;
+            renderFlipbook();
+            showToast("Rewound to start", "info");
+        }
+
+        function toggleAutoplay() {
+            const icon = document.getElementById('autoplay-icon');
+            const text = document.getElementById('autoplay-text');
+
+            if (isAutoplaying) {
+                clearInterval(autoplayTimer);
+                isAutoplaying = false;
+                icon.className = "fa-solid fa-play text-zinc-200";
+                text.innerText = "Auto Play Loop";
+                showToast("Auto play paused", "info");
+            } else {
+                isAutoplaying = true;
+                icon.className = "fa-solid fa-pause text-zinc-200";
+                text.innerText = "Pause";
+                showToast("Auto play started", "success");
+                autoplayTimer = setInterval(() => {
+                    nextFlipbookImage();
+                }, 2200);
+            }
+        }
+
+        function toggleSelectCurrentFlipbookImage() {
+            toggleGridSelection(currentFlipbookIdx);
+            renderFlipbook();
+        }
+
+        // ================= DOWNLOAD & SELECTIVE SHARE UTILITIES =================
+        function downloadSingle(idx) {
+            const prod = products[currentProductIdx];
+            const img = prod.images[idx];
+            triggerDownload(img.thumb, `Asset_${img.id}.png`);
+        }
+
+        function downloadCurrentFlipbookImage() {
+            downloadSingle(currentFlipbookIdx);
+        }
+
+        function downloadSelectedBatch() {
+            const prod = products[currentProductIdx];
+            let count = 0;
+            prod.images.forEach((img, idx) => {
+                if (selectedMap[`${currentProductIdx}-${idx}`]) {
+                    count++;
+                    setTimeout(() => {
+                        triggerDownload(img.thumb, `Selected_${img.id}.png`);
+                    }, count * 350);
+                }
+            });
+
+            if (count === 0) {
+                showToast("No images selected for download.", "error");
+            } else {
+                showToast(`Downloading ${count} selected assets...`, "success");
+                closeBatchModal();
+            }
+        }
+
+        function triggerDownload(url, filename) {
+            fetch(url)
+                .then(response => response.blob())
+                .then(blob => {
+                    const blobUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = blobUrl;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(blobUrl);
+                    document.body.removeChild(a);
+                }).catch(() => {
+                    window.open(url, '_blank');
+                });
+        }
+
+        function shareSingle(idx) {
+            const prod = products[currentProductIdx];
+            const img = prod.images[idx];
+            if (navigator.share) {
+                navigator.share({
+                    title: `Asset #${img.id}`,
+                    text: `Check out this product image:`,
+                    url: img.thumb
+                }).catch(() => {});
+            } else {
+                copyToClipboard(img.thumb);
+            }
+        }
+
+        function shareCurrentFlipbookImage() {
+            shareSingle(currentFlipbookIdx);
+        }
+
+        function shareCurrentPage() {
+            const shareUrl = window.location.href;
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Product Catalog',
+                    text: 'Explore catalog page',
+                    url: shareUrl
+                }).catch(() => {});
+            } else {
+                copyToClipboard(shareUrl);
+            }
+        }
+
+        function shareSelectedBatch() {
+            const prod = products[currentProductIdx];
+            const links = [];
+            prod.images.forEach((img, idx) => {
+                if (selectedMap[`${currentProductIdx}-${idx}`]) {
+                    links.push(img.thumb);
+                }
+            });
+
+            if (links.length === 0) {
+                showToast("No images selected to share.", "error");
+                return;
+            }
+
+            const text = `Selected Product Images:\n` + links.join('\n');
+            if (navigator.share) {
+                navigator.share({ title: `Selected Images`, text: text }).catch(() => {});
+            } else {
+                copyToClipboard(text);
+            }
+            closeBatchModal();
+        }
+
+        function copyToClipboard(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast("Selected image links copied to clipboard", "success");
+            } catch (err) {
+                showToast("Failed to copy", "error");
+            }
+            document.body.removeChild(textarea);
+        }
+
+        // ================= MODAL CONTROL =================
+        function openBatchModal() {
+            const prod = products[currentProductIdx];
+            const grid = document.getElementById('batch-modal-grid');
+            grid.innerHTML = '';
+
+            let count = 0;
+            prod.images.forEach((img, idx) => {
+                if (selectedMap[`${currentProductIdx}-${idx}`]) {
+                    count++;
+                    const div = document.createElement('div');
+                    div.className = "relative aspect-square-box bg-surface rounded-xl overflow-hidden border border-zinc-800";
+                    div.innerHTML = `
+                        <img src="${img.thumb}" alt="preview" class="w-full h-full object-cover">
+                        <div class="absolute bottom-1 left-1 bg-black/70 px-1.5 rounded text-[9px] font-mono text-zinc-300">#${idx + 1}</div>
+                    `;
+                    grid.appendChild(div);
+                }
+            });
+
+            document.getElementById('modal-selected-count').innerText = count;
+
+            if (count === 0) {
+                showToast("No images selected yet. Check boxes on images to select them.", "info");
+                return;
+            }
+
+            document.getElementById('batch-modal').classList.remove('hidden');
+            document.getElementById('batch-modal').classList.add('flex');
+        }
+
+        function closeBatchModal() {
+            document.getElementById('batch-modal').classList.remove('flex');
+            document.getElementById('batch-modal').classList.add('hidden');
+        }
+
+        // Toast notifications
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bg = 'bg-surface border-zinc-800 text-zinc-200';
+            if (type === 'success') bg = 'bg-zinc-900 border-zinc-700 text-zinc-100';
+            if (type === 'error') bg = 'bg-red-950/90 border-red-500/30 text-red-200';
+
+            toast.className = `pointer-events-auto px-4 py-3 rounded-2xl border shadow-2xl backdrop-blur-md text-xs font-medium flex items-center space-x-3 transition transform translate-y-2 opacity-0 ${bg}`;
+            toast.innerHTML = `
+                <i class="fa-solid ${type === 'success' ? 'fa-circle-check text-zinc-300' : type === 'error' ? 'fa-circle-exclamation text-red-400' : 'fa-circle-info text-zinc-400'}"></i>
+                <span>${message}</span>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 10);
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
