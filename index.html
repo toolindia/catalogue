@@ -6,6 +6,8 @@
     <title>Product Catalog</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Include jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -54,8 +56,12 @@
             </button>
         </div>
 
-        <!-- Contact Quick Actions -->
+        <!-- Contact Quick Actions & Global PDF Button -->
         <div class="flex items-center gap-3">
+            <button onclick="downloadPDF()" class="bg-red-600/90 hover:bg-red-600 text-white text-xs md:text-sm px-3.5 py-2 rounded-full flex items-center gap-2 transition shadow-lg shadow-red-900/20">
+                <i class="fa-solid fa-file-pdf"></i>
+                <span class="hidden sm:inline">Download PDF</span>
+            </button>
             <a href="tel:+918527341413" class="bg-neutral-900 border border-neutral-700 hover:border-accent text-xs md:text-sm px-3.5 py-2 rounded-full flex items-center gap-2 transition">
                 <i class="fa-solid fa-phone text-accent"></i>
                 <span class="hidden sm:inline">+91 85273 41413</span>
@@ -70,7 +76,7 @@
     <!-- Main Wrapper -->
     <main class="max-w-7xl mx-auto px-4 py-8">
 
-        <!-- LANDING VIEW (Grid of All Images + Contact Hero) -->
+        <!-- LANDING VIEW -->
         <div id="landing-view" class="space-y-12">
             <!-- Contact Hero Section -->
             <section class="text-center py-12 px-4 rounded-3xl bg-gradient-to-b from-neutral-900 to-cardbg border border-neutral-800 relative overflow-hidden">
@@ -92,9 +98,9 @@
 
             <!-- Catalog Gallery Grid -->
             <div class="space-y-4">
-                <div class="flex items-center justify-between">
+                <div class="flex flex-wrap items-center justify-between gap-3">
                     <h2 class="text-xl font-semibold tracking-wide">All Photos</h2>
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2">
                         <span id="total-count" class="text-xs text-neutral-400 bg-neutral-900 px-3 py-1 rounded-full border border-neutral-800"></span>
                         <button onclick="shareSelected()" class="bg-accent text-black hover:bg-amber-400 text-xs px-3 py-1.5 rounded-full font-medium transition flex items-center gap-1.5">
                             <i class="fa-solid fa-share-nodes"></i> Share Selected (<span id="global-selected-count">0</span>)
@@ -109,16 +115,19 @@
 
         <!-- VIEWER / FLIPBOOK DETAIL VIEW -->
         <div id="viewer-view" class="hidden space-y-6">
-            <div class="flex items-center justify-between">
+            <div class="flex flex-wrap items-center justify-between gap-3">
                 <button onclick="switchView('landing')" class="text-sm bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 px-4 py-2 rounded-xl flex items-center gap-2 transition">
                     <i class="fa-solid fa-arrow-left"></i> Back to Gallery
                 </button>
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="downloadPDF()" class="bg-red-600 hover:bg-red-500 text-white text-xs md:text-sm px-4 py-2 rounded-xl font-medium flex items-center gap-2 transition">
+                        <i class="fa-solid fa-file-pdf"></i> PDF (<span id="pdf-btn-count">All</span>)
+                    </button>
                     <button onclick="shareSelected()" class="bg-accent text-black hover:bg-amber-400 text-xs md:text-sm px-4 py-2 rounded-xl font-medium flex items-center gap-2 transition">
-                        <i class="fa-solid fa-share-nodes"></i> Share Selected (<span id="viewer-selected-count">0</span>)
+                        <i class="fa-solid fa-share-nodes"></i> Share (<span id="viewer-selected-count">0</span>)
                     </button>
                     <button onclick="downloadSelected()" class="bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-xs md:text-sm px-4 py-2 rounded-xl font-medium flex items-center gap-2 transition">
-                        <i class="fa-solid fa-download"></i> Download Selected
+                        <i class="fa-solid fa-download"></i> Download Images
                     </button>
                 </div>
             </div>
@@ -574,6 +583,8 @@
         function updateCounts() {
             document.getElementById('global-selected-count').innerText = selectedItems.size;
             document.getElementById('viewer-selected-count').innerText = selectedItems.size;
+            const pdfCountText = selectedItems.size > 0 ? `Selected (${selectedItems.size})` : 'All';
+            document.getElementById('pdf-btn-count').innerText = pdfCountText;
         }
 
         function toggleSelect(idx) {
@@ -691,6 +702,71 @@
                 a.click();
                 document.body.removeChild(a);
             });
+        }
+
+        // Helper to load image as base64 for PDF generation
+        function getBase64Image(url) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.onload = function () {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext("2d");
+                    ctx.drawImage(img, 0, 0);
+                    const dataURL = canvas.toDataURL("image/png");
+                    resolve(dataURL);
+                };
+                img.onerror = function (error) {
+                    reject(error);
+                };
+                img.src = url;
+            });
+        }
+
+        async function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Determine target items (selected or all)
+            let targets = [];
+            if (selectedItems.size > 0) {
+                targets = Array.from(selectedItems).map(idx => imagesData[idx]);
+            } else {
+                targets = imagesData; // default all if none selected
+            }
+
+            // Show simple loading alert
+            const btnText = event.target.innerText;
+            alert(`Generating PDF for ${targets.length} images. Please wait a moment...`);
+
+            for (let i = 0; i < targets.length; i++) {
+                try {
+                    if (i > 0) {
+                        doc.addPage();
+                    }
+                    const base64Img = await getBase64Image(targets[i].url);
+                    
+                    // Add header text
+                    doc.setFont("helvetica", "bold");
+                    doc.setFontSize(14);
+                    doc.text(`Catalog Item: ${targets[i].alt}`, 15, 15);
+                    
+                    // Add contact info footer/header
+                    doc.setFont("helvetica", "normal");
+                    doc.setFontSize(10);
+                    doc.setTextColor(100);
+                    doc.text("Contact: +91 85273 41413", 15, 285);
+
+                    // Add image centered in page (1:1 square ratio fit)
+                    doc.addImage(base64Img, 'PNG', 25, 30, 160, 160);
+                } catch (e) {
+                    console.error("Error processing image for PDF: ", targets[i].url);
+                }
+            }
+
+            doc.save("product-catalog.pdf");
         }
 
         // Initialize grid on load
